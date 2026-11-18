@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"strings"
 
-	"cardhash/golang/engine"
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/engine"
+	"cardhash/golang/v0/standard"
 	"golang.org/x/text/unicode/norm"
 )
 

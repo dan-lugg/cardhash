@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"sort"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // TreatmentPolicy controls omitted treatment while applying a structural changeset.

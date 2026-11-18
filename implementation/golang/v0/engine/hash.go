@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"sort"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // canonicalItem is the hash-visible projection of a CardItem.

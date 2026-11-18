@@ -10,7 +10,7 @@ package engine
 import (
 	"testing"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // TestHashesIgnorePresentationOrderAndMetadata proves that canonical identity

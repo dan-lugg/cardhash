@@ -3,7 +3,7 @@ package engine
 import (
 	"testing"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // TestConfigurableProfileSupportsNonMTGIdentity proves another game can define

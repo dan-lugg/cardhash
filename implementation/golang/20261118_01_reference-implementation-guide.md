@@ -1,6 +1,6 @@
 # Go Reference Implementation Guide
 
-This document explains the baseline Go implementation of the TCG Decklist Graph Standard. The governing proposal is [`../../20261117_01_tcg-decklist-graph-standard.md`](../../20261117_01_tcg-decklist-graph-standard.md); the implementation is intentionally executable guidance for that proposal, not a claim that every provisional design question has been resolved.
+This document explains the v0 Go implementation of the TCG Decklist Graph Standard. The governing proposal is [`../../../agents/20261117_01_tcg-decklist-graph-standard.md`](../../../agents/20261117_01_tcg-decklist-graph-standard.md); the implementation is intentionally executable guidance for that proposal, not a claim that every provisional design question has been resolved.
 
 ## Purpose And Status
 
@@ -8,25 +8,25 @@ The implementation provides a language-level model for decks, role-bearing card 
 
 The implementation MUST preserve the proposal's primary boundary: card-content identity is separate from metadata, presentation, catalog enrichment, legality, and provenance.
 
-The implementation SHOULD be treated as a reference baseline for future TypeScript, PHP, or other language implementations. It MUST NOT be treated as a finalized wire protocol or official MTG rules engine.
+The implementation SHOULD be treated as a v0 reference baseline for future TypeScript, PHP, or other language implementations. It MUST NOT be treated as a finalized wire protocol or official MTG rules engine. Future reference iterations SHOULD use separate namespaces rather than silently changing v0 behavior.
 
-The implementation is organized into three Go packages under `implementation/golang`: `standard` for shared ontology and contracts, `engine` for reusable algorithms and validation machinery, and `mtg` for Magic-specific profile and rule composition. Dependencies flow from `mtg` to `engine` to `standard`; `standard` MUST NOT import either implementation package.
+The v0 implementation is organized into three Go packages under `implementation/golang/v0`: `standard` for shared ontology and contracts, `engine` for reusable algorithms and validation machinery, and `mtg` for Magic-specific profile and rule composition. Dependencies flow from `mtg` to `engine` to `standard`; `standard` MUST NOT import either implementation package.
 
 ## Package Map
 
 | Package/file | Responsibility | Standard boundary |
 | --- | --- | --- |
-| `standard/model.go` | Core entities, profile interfaces, structural validation, role normalization | Deck, CardList, CardItem, CardRef, CardMeta, Treatment |
-| `standard/changes.go`, `standard/diagnostic.go` | Shared changeset and diagnostic ontology | ChangeSet, ChangeItem, scopes, validation result boundary |
-| `standard/constants.go` | Core role constants | Reserved `main` role |
-| `engine/hash.go` | Canonical projections and SHA-256 identity calculation | StructureHash, TreatmentHash, canonical input |
-| `standard/changes.go`, `engine/changeset.go` | Shared changeset ontology and generic diff algorithms | ChangeSet, ChangeItem, diff scope, changeset hashes |
-| `engine/apply.go` | Changeset replay with treatment omission policy | Clear/preserve application semantics |
-| `engine/profile.go` | Generic and configurable profile implementations | Game-independent profile extension point |
-| `engine/rules.go` | Generic validation context, rule handlers, and validator pipeline | External legality and rule-profile evaluation |
-| `engine/constants.go`, `engine/doc.go` | Engine policy constants and package boundary declaration | Go implementation policy |
-| `mtg/mtg.go`, `mtg/constants.go` | MTG profile, format presets, and handler composition | MTG identity and catalog-independent legality baseline |
-| `mtg/doc.go` | MTG package boundary declaration | Magic-specific namespace |
+| `v0/standard/model.go` | Core entities, profile interfaces, structural validation, role normalization | Deck, CardList, CardItem, CardRef, CardMeta, Treatment |
+| `v0/standard/changes.go`, `v0/standard/diagnostic.go` | Shared changeset and diagnostic ontology | ChangeSet, ChangeItem, scopes, validation result boundary |
+| `v0/standard/constants.go` | Core role constants | Reserved `main` role |
+| `v0/engine/hash.go` | Canonical projections and SHA-256 identity calculation | v0 StructureHash/TreatmentHash behavior |
+| `v0/standard/changes.go`, `v0/engine/changeset.go` | Shared changeset ontology and generic diff algorithms | ChangeSet, ChangeItem, diff scope, changeset hashes |
+| `v0/engine/apply.go` | Changeset replay with treatment omission policy | v0 clear/preserve application semantics |
+| `v0/engine/profile.go` | Generic and configurable profile implementations | Game-independent profile extension point |
+| `v0/engine/rules.go` | Generic validation context, rule handlers, and validator pipeline | External legality and rule-profile evaluation |
+| `v0/engine/constants.go`, `v0/engine/doc.go` | Engine policy constants and package boundary declaration | Go implementation policy |
+| `v0/mtg/mtg.go`, `v0/mtg/constants.go` | MTG profile, format presets, and handler composition | MTG identity and catalog-independent legality baseline |
+| `v0/mtg/doc.go` | MTG package boundary declaration | Magic-specific namespace |
 | `*_test.go` | Requirement and adversarial behavior coverage | Executable conformance guidance |
 
 ```mermaid
@@ -172,13 +172,11 @@ The Go JSON struct tags remain string literals because Go requires tags to be co
 
 ## Hashing Pipeline
 
-The implementation calculates two identities for each `CardList` and `Deck`.
+The v0 implementation exposes separate structural and treatment hash results, but this is a v0 compatibility shape rather than the settled standard API. The standard direction is `hash(profile)`, with `StructureHash` as the baseline alias and more-specific coordinate profiles as selectable views.
 
-`StructureHash` uses only quantity and normalized `CardRef`. It merges differently treated copies of the same reference into one structural quantity.
+The v0 structural path uses quantity and normalized `CardRef`, merging differently treated copies of the same reference into one structural quantity. The v0 treatment path uses profile-recognized treatment buckets and falls back to the structural result when no recognized treatment exists. Future versions MUST replace this binary behavior with registered, composable coordinate profiles.
 
-`TreatmentHash` uses the same structural fields plus profile-recognized treatment buckets. When no recognized treatment exists, it returns the exact `StructureHash` fallback. When recognized treatment exists, the treatment profile ID enters the domain-separated hash input.
-
-Metadata, deck names, source hashes, legality diagnostics, and presentation order are excluded from both content identities.
+The settled standard direction includes identity-bearing Deck headers, initially format/context, in Deck hash inputs. v0 currently excludes Deck headers from its content hashes and MUST therefore not be described as implementing the final header-aware hash contract. Metadata, source hashes, legality diagnostics, and presentation order remain excluded from v0 hashes.
 
 ```mermaid
 sequenceDiagram
@@ -211,12 +209,12 @@ sequenceDiagram
         ListHashes-->>DeckHashes: list hashes
     end
     DeckHashes->>SHA256: sorted role/hash pairs
-    SHA256-->>Caller: deck StructureHash and TreatmentHash
+    SHA256-->>Caller: v0 deck StructureHash and TreatmentHash
 ```
 
 ### Canonicalization Steps
 
-The list canonicalizer performs the following domain steps:
+The v0 list canonicalizer performs the following domain steps:
 
 - It rejects non-positive quantities before any hash is emitted.
 - It normalizes each `CardRef` through the active profile.
@@ -224,9 +222,9 @@ The list canonicalizer performs the following domain steps:
 - It combines repeated equivalent `(CardRef, Treatment)` buckets.
 - It sorts treatment buckets by canonical reference and treatment JSON.
 - It separately aggregates all buckets by `CardRef` for structure scope.
-- It serializes a fixed domain/value envelope as UTF-8 JSON and hashes it with SHA-256.
+- It serializes a fixed v0 domain/value envelope as UTF-8 JSON and hashes it with SHA-256.
 
-The baseline uses Go `encoding/json` as its canonical JSON mechanism. Go deterministically sorts map keys during JSON encoding, but the broader proposal still requires a future explicit canonical JSON wire specification covering field order, escaping, number representation, absent versus null, and hash display format.
+The v0 baseline uses Go `encoding/json` as its canonical JSON mechanism. Go deterministically sorts map keys during JSON encoding, but the settled standard direction selects RFC 8785 JCS and requires explicit profile, domain, algorithm, and canonicalization metadata.
 
 ```mermaid
 flowchart LR
@@ -244,9 +242,9 @@ flowchart LR
 
 ## Deck Hash Composition
 
-Each list is hashed without its role. `DeckHashes` then creates role/hash pairs and sorts them by canonical role before hashing.
+Each list is hashed without its role. `DeckHashes` then creates role/hash pairs and sorts them by canonical role before hashing. In the settled standard, the Deck hash also includes the canonical identity-bearing header registry, initially format/context. v0 does not yet include those headers.
 
-The structural deck hash contains role plus list `StructureHash`. The treatment deck hash contains role plus list `TreatmentHash`. Deck metadata and source provenance are not included.
+The v0 structural Deck hash contains role plus list `StructureHash`. The v0 treatment Deck hash contains role plus list `TreatmentHash`. Future versions MUST express this as `Deck.hash(profile)` and include the selected profile/domain envelope and identity-bearing headers.
 
 ```mermaid
 flowchart TD
@@ -262,9 +260,9 @@ flowchart TD
 
 ## Comparison And Changesets
 
-`Compare` validates both decks, computes endpoint hashes, and produces both a `StructureChangeSet` and a `TreatmentChangeSet` for every comparison.
+The v0 `Compare` validates both Decks, computes endpoint hashes, and produces both a `StructureChangeSet` and a `TreatmentChangeSet`. This is retained as a v0 compatibility API. The settled standard makes `CardList` comparison primitive and defines Deck comparison as composition of role-associated list results plus explicit header operations under a caller-selected profile.
 
-The structural diff flattens each deck by `(role, CardRef)` and ignores treatment. The treatment diff flattens by `(role, CardRef, canonical treatment)`. The target-minus-source quantity determines the sign.
+The v0 structural diff flattens each Deck by `(role, CardRef)` and ignores treatment. The v0 treatment diff flattens by `(role, CardRef, canonical treatment)`. The target-minus-source quantity determines the sign. Future versions MUST expose role-scoped results as the canonical Deck diff and may provide the flattened v0 view as a derived representation.
 
 `normalizeChangeItems` accepts denormalized input, combines equal signed buckets, discards net-zero items, canonicalizes profile values, and sorts the result. A malformed reference or treatment field is returned as an error rather than silently omitted.
 
@@ -272,24 +270,23 @@ The structural diff flattens each deck by `(role, CardRef)` and ignores treatmen
 flowchart LR
     Source["Source Deck"] --> Compare["Compare"]
     Target["Target Deck"] --> Compare
-    Compare --> Structural["Flatten by role + CardRef"]
-    Compare --> Treatment["Flatten by role + CardRef + Treatment"]
-    Structural --> StructuralDiff["Signed StructureChangeSet"]
-    Treatment --> TreatmentDiff["Signed TreatmentChangeSet"]
-    StructuralDiff --> Normalize["Normalize and sort ChangeItems"]
-    TreatmentDiff --> Normalize
-    Normalize --> Hashes["Scope-specific changeset hash"]
+    Compare --> RoleMatch["Match canonical roles"]
+    RoleMatch --> ListDiff["Compare each CardList"]
+    ListDiff --> Profile["Caller-selected profile"]
+    Profile --> Normalize["Normalize and sort role-scoped changes"]
+    Compare --> Headers["Compare identity-bearing headers"]
+    Normalize --> Result["Structured DeckChangeSet"]
+    Headers --> Result
 ```
 
 ```mermaid
 classDiagram
     class ChangeSet {
         +ChangeScope Scope
-        +string SourceStructureHash
-        +string TargetStructureHash
-        +string SourceTreatmentHash
-        +string TargetTreatmentHash
-        +ChangeItem[] Items
+        +string SourceHash
+        +string TargetHash
+        +RoleChange[] Roles
+        +HeaderChange[] Headers
         +Hash(HashProfile) string,error
     }
     class ChangeItem {
@@ -302,16 +299,16 @@ classDiagram
     ChangeSet --> ChangeScope
 ```
 
-Changeset hashes exclude source and target references. This follows the proposal's distinction between semantic change identity and the deck pair in which a change was observed.
+Changeset hashes exclude source and target references. This follows the proposal's distinction between semantic change identity and the Deck pair in which a change was observed. v0 uses flattened role-bearing items; the settled standard requires the canonical profile and domain to identify the normalized structured result.
 
 ### Comparison Composition Direction
 
 The current Go baseline exposes `Compare` at the `Deck` level, but the standard direction is to make `CardList` comparison the primitive operation and define deck comparison as composition over normalized roles. The implementation SHOULD evolve toward a reusable list comparison function with an explicit projection or equivalent options:
 
-- The structural projection groups quantities by normalized `CardRef`.
-- The treatment projection groups quantities by normalized `CardRef` plus the profile's canonical treatment bucket.
-- The deck operation matches canonical roles, delegates matched list pairs to the list operation, and combines the role-scoped results deterministically.
-- Role creation, removal, renaming, explicit empty state, and ordering changes are not card-bucket changes and require separate operations or remain reported as representation gaps.
+- The baseline projection groups quantities by normalized base identity coordinates.
+- A more specific projection groups quantities by normalized base identity plus selected coordinate values.
+- The deck operation matches canonical roles, delegates matched list pairs to the list operation, combines role-scoped results deterministically, and emits header set/unset operations.
+- Role creation, removal, and renaming are not card-bucket changes and require separate operations or remain reported as representation gaps.
 
 This direction is intentionally a contract clarification rather than a claim that the current API is final. The existing flattened deck changesets remain useful executable guidance, but future APIs MUST make clear whether flattening is canonical or a derived view of nested role-scoped results.
 
@@ -319,11 +316,11 @@ The implementation SHOULD also separate comparison compatibility diagnostics fro
 
 ## Changeset Application
 
-`ApplyChangeSet` applies treatment changes exactly by treatment bucket and applies structural changes by normalized CardRef.
+`ApplyChangeSet` is a v0 API. It applies treatment changes by v0 treatment bucket and structural changes by normalized CardRef.
 
-Treatment scope rejects under-removal from a specific bucket. Structural scope can create a role for positive additions but cannot represent empty-role creation or deletion because the current `ChangeItem` model has no role-level operation.
+The v0 treatment scope rejects under-removal from a specific bucket. Structural scope can create a role for positive additions but cannot fully represent header operations. The settled default is best-effort application with diagnostics; strict underflow and source-hash validation are configurable policies.
 
-For structural changes, `ClearTreatment` removes treatment from all resulting items. `PreserveTreatment` retains surviving source treatment buckets and leaves new additions untreated. Neither policy invents a treatment for a newly added card.
+For structural changes, `ClearTreatment` removes treatment from all resulting items. `PreserveTreatment` retains surviving source treatment buckets and leaves new additions untreated. Neither v0 policy invents a treatment for a newly added card. A future engine MAY resolve unspecified coordinates during application, but canonical diff calculation MUST use exact selected-coordinate buckets.
 
 ```mermaid
 sequenceDiagram
@@ -467,14 +464,14 @@ Future engines SHOULD follow the same rule: shared values belong in the core nam
 | Legality is external to content identity | `Validator` and `ValidateMTG` return diagnostics outside hashes | Aligned |
 | CardRef is profile-defined | `HashProfile` and `GameProfile` own normalization | Aligned |
 | MTG uses NFC and lowercase comparison | `MTGProfile` uses `golang.org/x/text/unicode/norm` and lowercase output | Baseline does not yet pin a Unicode version in a wire-level profile registry |
-| Treatment profiles are versionable | `TreatmentProfileID` enters treatment domains when treatment is significant | No registry or capability negotiation exists yet |
+| Hash profiles are registered and composable | v0 `HashProfile` provides local normalization and treatment projection | v0 has no registered coordinate registry or profile composition |
 | StructureHash ignores treatment | `structureItems` aggregates all treatment buckets by CardRef | Aligned |
 | TreatmentHash includes present recognized treatment | `canonicalizeList` keeps treatment buckets and an untreated bucket when active | Explicit redaction, absent, and unknown-field states are not yet distinct model types |
-| Canonical JSON and SHA-256 | `encoding/json` plus SHA-256 with domain envelopes | Canonical JSON rules are implementation-local until formally standardized |
-| Deck hashes use role/hash pairs | `DeckHashes` sorts canonical role/hash pairs | Aligned; role normalization is a baseline policy rather than a registered per-game namespace |
-| Every comparison yields two changesets | `Compare` always returns structural and treatment results | Aligned |
+| Canonical JSON and SHA-256 | `encoding/json` plus SHA-256 with v0 domain envelopes | v0 is not yet RFC 8785 JCS-compatible |
+| Deck hashes use role/hash pairs and identity headers | `DeckHashes` sorts canonical role/hash pairs | v0 does not yet include the identity-bearing format/context header |
+| Profile-scoped comparison | `Compare` returns v0 structural and treatment results | v0 is Deck-first and does not expose the canonical role-scoped profile result |
 | Signed ChangeItems are positive/negative and non-zero | `normalizeChangeItems` combines, cancels, sorts, and removes zeros | Aligned for card buckets |
-| Changeset application supports omission policy | `ApplyChangeSet` supports clear and preserve policies | Empty-role operations and ordered-list operations are not representable |
+| Changeset application supports omission policy | `ApplyChangeSet` supports clear and preserve policies | v0 does not yet expose the settled best-effort diagnostics and header operations |
 | Single-source derivation metadata | `Deck` stores source hashes | No graph node/edge storage or cycle policy exists yet |
 | Unknown extensions should round-trip | `Treatment` remains open at the model boundary | The baseline profile does not provide a general serialized extension container |
 | Total comparison does not require catalog resolution | Hashing and `Compare` use profile normalization only | Aligned |
@@ -485,12 +482,13 @@ The implementation MUST NOT be described as complete standard conformance becaus
 
 - There is no transport schema, media type, capability negotiation, or canonical wire encoding.
 - There is no graph store for immutable revisions, explicit edges, branches, or future merges.
-- There are no role-level changes for adding/removing empty roles or renaming roles.
-- `Compare` is currently deck-first; a first-class `CardList` comparison projection and the canonical nested-versus-flattened deck result shape remain to be standardized.
-- There is no ordered-list profile or positional changeset operation.
-- There is no explicit model for redacted versus absent treatment values.
+- There are no role-level changes for role creation, removal, or renaming.
+- `Compare` is currently deck-first; a first-class `CardList` comparison projection and canonical role-scoped Deck result remain to be implemented.
+- There is no registered coordinate registry, profile composition, or incomplete-coordinate dependency diagnostic.
+- There is no identity-bearing Deck header model for format/context.
+- There is no RFC 8785 JCS serializer or hash-algorithm agility metadata.
 - There is no catalog synchronization, provenance signature, or external metadata trust model.
-- There is no hash-agility or canonical JSON version negotiation mechanism.
+- There is no hash-profile capability negotiation mechanism.
 - The MTG validator does not implement catalog-dependent legality.
 
 These gaps are intentional extension points. Future implementations SHOULD add them as separate profile, transport, graph, or validation layers rather than widening the meaning of existing content hashes.

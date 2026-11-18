@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // ValidationContext carries the deck and profile shared by all rule handlers.

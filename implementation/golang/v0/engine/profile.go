@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // GenericProfile is the engine's explicit fallback profile for non-game-specific

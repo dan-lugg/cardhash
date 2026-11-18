@@ -9,8 +9,8 @@ package mtg
 import (
 	"testing"
 
-	"cardhash/golang/engine"
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/engine"
+	"cardhash/golang/v0/standard"
 )
 
 // TestMTGConstructedValidation proves the built-in four-copy rule reports a

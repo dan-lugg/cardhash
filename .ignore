@@ -1,0 +1,4 @@
+# Keep the independent agents repository visible to OpenCode searches.
+!agents/
+!agents/**
+agents/.git/

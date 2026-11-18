@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sort"
 
-	"cardhash/golang/standard"
+	"cardhash/golang/v0/standard"
 )
 
 // Compare produces both required scope-specific changesets for two decks.
