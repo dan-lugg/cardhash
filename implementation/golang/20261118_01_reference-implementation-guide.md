@@ -314,6 +314,61 @@ This direction is intentionally a contract clarification rather than a claim tha
 
 The implementation SHOULD also separate comparison compatibility diagnostics from changeset application errors. A list comparison MAY remain catalog-independent and MAY compare unresolved references when the active profile can normalize them, but it MUST reject or diagnose incompatible profile, ordering, or treatment contexts deterministically.
 
+### Provisional Encoding Examples
+
+The v0 implementation does not yet parse or emit the following text format. These examples document the intended human-readable direction for future reference iterations. The expanded examples and external-format observations are maintained in [`../../../agents/20261118_04_decklist-encoding-examples.md`](../../../agents/20261118_04_decklist-encoding-examples.md).
+
+```text
+---
+kind: cardlist
+role: main
+profile: none
+---
+
+4 Lightning Bolt
+4 Counterspell
+24 Island
+```
+
+```text
+---
+kind: deck
+format: mtg/commander
+profile: none
+name: Izzet Spells
+---
+
+[commander]
+1 Mizzix of the Izmagnus
+
+[main]
+1 Sol Ring
+1 Arcane Signet
+4 Lightning Bolt
+4 Counterspell
+24 Island
+```
+
+```text
+---
+kind: deck-diff
+profile: mtg/base/1
+---
+
+[headers]
+set format: mtg/legacy
+
+[main]
++2 Lightning Bolt
+-1 Counterspell
+
+[side]
++2 Dark Ritual
+-2 Giant Growth
+```
+
+These are sparse structured renderings: omitted roles and headers remain unchanged, positive additions MAY create an absent role, and default application is best effort with diagnostics. Exact printing coordinates MAY be added by selecting a more-specific profile, while unspecified coordinates remain distinct during canonical diff calculation.
+
 ## Changeset Application
 
 `ApplyChangeSet` is a v0 API. It applies treatment changes by v0 treatment bucket and structural changes by normalized CardRef.
