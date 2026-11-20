@@ -1,6 +1,7 @@
-<table align="center" width="100%" border="0">
+<div align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border: 0; border-collapse: collapse; background: transparent;">
   <tr>
-    <td align="center" width="100%">
+    <td align="center" width="100%" style="border: 0; text-align: center;">
       <img src="assets/logo.png" alt="Cardhash logo" width="320">
       <br>
       <strong>cardhash</strong>
@@ -9,7 +10,7 @@
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" style="border: 0; text-align: center;">
       <a href="#status"><img src="https://img.shields.io/badge/status-provisional-orange.svg" alt="Status: provisional"></a>
       <a href="#implementation"><img src="https://img.shields.io/badge/implementation-v0-blue.svg" alt="Implementation: v0"></a>
       <a href="#repository-checks"><img src="https://img.shields.io/badge/checks-make%20check-2ea44f.svg" alt="Checks: make check"></a>
@@ -18,8 +19,7 @@
     </td>
   </tr>
 </table>
-
-# Cardhash
+</div>
 
 Cardhash is a reference implementation and proposal workspace for a standard representation of trading card game decklist graphs. The standard is intended to represent decklists, diffs between lists, and the graph of their evolution.
 
